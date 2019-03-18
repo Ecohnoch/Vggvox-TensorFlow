@@ -316,7 +316,7 @@ def test(opt):
     y_s = tf.placeholder(tf.int64, [None])
     y = tf.one_hot(y_s, n_classes, axis=-1)
 
-    emb_ori = voicenet(x, is_training=True)
+    emb_ori = voicenet(x, is_training=False)
     emb = tf.layers.dense(emb_ori, n_classes)
     # emb = tf.contrib.layers.fully_connected(emb_ori, n_classes, activation_fn=None)
 
