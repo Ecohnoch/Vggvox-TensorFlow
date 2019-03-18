@@ -37,8 +37,9 @@ After get the full dataset, and you can see \[utils/vox1_split_backup.txt\] in t
 
 Training:
 
-
-> $ python3 train.py train --voxceleb_wav_dir [wav_dir] --vox_split_txt_file [split_file] --batch_size [bs] --lr [lr] --ckpt_save_dir [save_dir]
+```
+$ python3 train.py train --voxceleb_wav_dir [wav_dir] --vox_split_txt_file [split_file] --batch_size [bs] --lr [lr] --ckpt_save_dir [save_dir]
+```
 
 The args:
 
@@ -54,7 +55,9 @@ Before test, you must have the pre-trained ckpt file.
 
 Test:
 
-> $ python3 train.py test --voxceleb_wav_dir [wav_dir] --vox_split_txt_file [split_file] --batch_size [bs] --ckpt_restore_file [ckpt_file]
+```
+$ python3 train.py test --voxceleb_wav_dir [wav_dir] --vox_split_txt_file [split_file] --batch_size [bs] --ckpt_restore_file [ckpt_file]
+```
 
 The args:
 
@@ -67,12 +70,15 @@ The args:
 
 Training:
 
-> $ python3 train.py train --voxceleb_wav_dir '/data/ChuyuanXiong/up/wav/' --vox_split_txt_file 'utils/vox1_split_backup.txt' --batch_size 32 --lr 0.001 --ckpt_save_dir '/data/ChuyuanXiong/backup/speaker_real318_ckpt' 
+```
+$ python3 train.py train --voxceleb_wav_dir '/data/ChuyuanXiong/up/wav/' --vox_split_txt_file 'utils/vox1_split_backup.txt' --batch_size 32 --lr 0.001 --ckpt_save_dir '/data/ChuyuanXiong/backup/speaker_real318_ckpt' 
+```
 
 Testing:
 
-> $ python3 train.py test --voxceleb_wav_dir '/data/ChuyuanXiong/up/wav/' --vox_split_txt_file 'utils/vox1_split_backup.txt' --batch_size 32 --ckpt_restore_file '/data/ChuyuanXiong/backup/triplet_backup2/Speaker_vox_iter_51500.ckpt' --random_seed 100
-
+```
+$ python3 train.py test --voxceleb_wav_dir '/data/ChuyuanXiong/up/wav/' --vox_split_txt_file 'utils/vox1_split_backup.txt' --batch_size 32 --ckpt_restore_file '/data/ChuyuanXiong/backup/triplet_backup2/Speaker_vox_iter_51500.ckpt' --random_seed 100
+```
 
 ### Dataset
 
