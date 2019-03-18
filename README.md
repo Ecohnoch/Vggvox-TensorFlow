@@ -17,7 +17,15 @@ INTERSPEECH, 2017
 
 [2] librosa=0.6.3 
 
-[3] scipy=1.1.0   
+[3] scipy=1.1.0 
+
+### Platform
+
+[1] Ubuntu 16.04
+
+[2] Tesla P40
+
+[3] Python 3.5  
 
 ### Train
 
@@ -29,7 +37,8 @@ After get the full dataset, and you can see \[utils/vox1_split_backup.txt\] in t
 
 Training:
 
-> $ python3 train.py train --voxceleb_wav_dir '/data/ChuyuanXiong/up/wav/' --vox_split_txt_file 'utils/vox1_split_backup.txt' --batch_size 32 --lr 0.001 --ckpt_save_dir '/data/ChuyuanXiong/backup/speaker_real318_ckpt' 
+
+> $ python3 train.py train --voxceleb_wav_dir [wav_dir] --vox_split_txt_file [split_file] --batch_size [bs] --lr [lr] --ckpt_save_dir [save_dir]
 
 The args:
 
@@ -45,7 +54,7 @@ Before test, you must have the pre-trained ckpt file.
 
 Test:
 
-> $ python3 train.py test --voxceleb_wav_dir '/data/ChuyuanXiong/up/wav/' --vox_split_txt_file 'utils/vox1_split_backup.txt' --batch_size 32 --ckpt_restore_file '/data/ChuyuanXiong/backup/triplet_backup2/Speaker_vox_iter_51500.ckpt' --random_seed 100
+> $ python3 train.py test --voxceleb_wav_dir [wav_dir] --vox_split_txt_file [split_file] --batch_size [bs] --ckpt_restore_file [ckpt_file]
 
 The args:
 
@@ -53,6 +62,16 @@ The args:
 2. --vox_split_txt_file: You can find this file in \[utils/vox1_split_backup.txt\], and you can also find it in [VoxCeleb](http://www.robots.ox.ac.uk/~vgg/data/voxceleb/).
 3. --batch_size: Batch size.
 5. --ckpt_restore_file: Pre-trained model.
+
+### Example
+
+Training:
+
+> $ python3 train.py train --voxceleb_wav_dir '/data/ChuyuanXiong/up/wav/' --vox_split_txt_file 'utils/vox1_split_backup.txt' --batch_size 32 --lr 0.001 --ckpt_save_dir '/data/ChuyuanXiong/backup/speaker_real318_ckpt' 
+
+Testing:
+
+> $ python3 train.py test --voxceleb_wav_dir '/data/ChuyuanXiong/up/wav/' --vox_split_txt_file 'utils/vox1_split_backup.txt' --batch_size 32 --ckpt_restore_file '/data/ChuyuanXiong/backup/triplet_backup2/Speaker_vox_iter_51500.ckpt' --random_seed 100
 
 
 ### Dataset
