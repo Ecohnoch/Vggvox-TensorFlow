@@ -14,8 +14,10 @@ INTERSPEECH, 2017
 ### Dependencies
 
 [1] tensorflow-gpu=1.11.0 
-[1] librosa=0.6.3 
-[2] scipy=1.1.0   
+
+[2] librosa=0.6.3 
+
+[3] scipy=1.1.0   
 
 ### Train
 
