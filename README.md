@@ -55,3 +55,31 @@ The args:
 5. --ckpt_restore_file: Pre-trained model.
 
 
+### Dataset
+
+Set | # POIs | Utterances
+----|--------|----------
+Train| 1251  |  145265 
+Test | 1251  |  8251
+Total| 1251  |  153516 
+
+### Models
+
+[Model] (https://github.com/Ecohnoch/Vggvox-TensorFlow/blob/master/pretrained/vggvox_51500.zip?raw=true) trained by me, and this could be used in this repo. The accuracy is about 55%, this can be further optimized.
+
+[Model] (https://github.com/a-nagrani/VGGVox) trained by the author, this is for Matlab.
+
+### Citation
+
+```
+@InProceedings{Nagrani17,
+  author       = "Nagrani, A. and Chung, J.~S. and Zisserman, A.",
+  title        = "VoxCeleb: a large-scale speaker identification dataset",
+  booktitle    = "INTERSPEECH",
+  year         = "2017",
+}
+```
+
+
+
+
