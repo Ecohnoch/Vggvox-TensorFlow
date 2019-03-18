@@ -90,9 +90,9 @@ Total| 1251  |  153516
 
 ### Models
 
-[Model] (https://github.com/Ecohnoch/Vggvox-TensorFlow/blob/master/pretrained/vggvox_51500.zip?raw=true) trained by me, and this could be used in this repo. The accuracy is about 55%, this can be further optimized.
+[Model](https://github.com/Ecohnoch/Vggvox-TensorFlow/blob/master/pretrained/vggvox_51500.zip?raw=true) trained by me, and this could be used in this repo. The accuracy is about 55%, this can be further optimized.
 
-[Model] (https://github.com/a-nagrani/VGGVox) trained by the author, this is for Matlab.
+[Model](https://github.com/a-nagrani/VGGVox) trained by the author, this is for Matlab.
 
 ### Citation
 
