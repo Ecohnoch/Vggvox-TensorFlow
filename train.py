@@ -255,7 +255,6 @@ def train(opt):
 
 
 def test(opt):
-    lr                = opt.lr
     rs                = opt.random_seed
     batch_size        = opt.batch_size
     wav_dir           = opt.voxceleb_wav_dir
@@ -263,7 +262,6 @@ def test(opt):
     ckpt_restore_file = opt.ckpt_restore_file
 
     print('-------------Training Args-----------------')
-    print('--lr               :  ', lr)
     print('--rs               :  ', rs)
     print('--batch_size       :  ', batch_size)
     print('--wav_dir          :  ', wav_dir)
@@ -296,16 +294,16 @@ def test(opt):
     np.random.seed(rs)
     np.random.shuffle(test_label)
     print(test_audio.shape, test_label.shape)
-    print('--dataset shape:  ', train_audio.shape, train_label.shape)
+    print('--dataset shape:  ', test_audio.shape, test_label.shape)
     print('-------------------------------------------')
 
     def get_batch(dataset, start, batch_size=32):
         end = (start + batch_size) % len(dataset)
         if end > start:
-            return load_wave_list_305(dataset[start:end]), end, False
+            return load_wave_list(dataset[start:end]), end, False
 
         sub_dataset = np.hstack((dataset[start:], dataset[:end]))
-        return load_wave_list_305(sub_dataset), end, True
+        return load_wave_list(sub_dataset), end, True
 
     def get_label_batch(dataset, start, batch_size=32):
         end = (start + batch_size) % len(dataset)
@@ -442,7 +440,6 @@ if __name__ == '__main__':
     parser_test.add_argument('--voxceleb_wav_dir', default='/data/ChuyuanXiong/up/wav/', required=True)
     parser_test.add_argument('--vox_split_txt_file', default='utils/vox1_split_backup.txt', required=True)
     parser_test.add_argument('--batch_size', default=32, type=int, required=True)
-    parser_test.add_argument('--lr', default=0.001, type=float, required=True)
     parser_test.add_argument('--ckpt_restore_file', default='/data/ChuyuanXiong/backup/triplet_backup2/Speaker_vox_iter_51500.ckpt', required=True)
     parser_test.add_argument('--random_seed', default=100, type=int, required=False)
     parser_test.set_defaults(func=test)
