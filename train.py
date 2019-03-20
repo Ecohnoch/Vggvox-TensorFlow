@@ -8,6 +8,7 @@ import os
 import random
 import warnings
 import argparse
+import threading
 import scipy.io.wavfile
 
 from wav_reader import get_fft_spectrum
@@ -118,7 +119,8 @@ def load_wave_list(wave_file_list):
 
 
 
-
+idx_train = 0
+idx_train_label = 0
 
 
 def train(opt):
@@ -191,10 +193,17 @@ def train(opt):
 
     x = tf.placeholder(tf.float32, [None, 512, 300, 1], name='audio_input')
     y_s = tf.placeholder(tf.int64, [None])
-    y = tf.one_hot(y_s, n_classes, axis=-1)
+    
 
-    emb_ori = voicenet(x)
+    with tf.device('/cpu:0'):
+        q = tf.FIFOQueue(batch_size*3, [tf.float32, tf.int64], shapes=[[512, 300, 1], []])
+        enqueue_op = q.enqueue_many([x, y_s])
+        x_b, y_b = q.dequeue_many(batch_size)
+
+    y = tf.one_hot(y_b, n_classes, axis=-1)
+    emb_ori = voicenet(x_b, is_training=False)
     emb = tf.layers.dense(emb_ori, n_classes)
+
     # emb = tf.contrib.layers.fully_connected(emb_ori, n_classes, activation_fn=None)
     emb_softmax = tf.nn.softmax(emb, axis=1)
 
@@ -202,56 +211,83 @@ def train(opt):
     loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=emb, labels=y))
 
 
-    accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(emb_softmax, 1), y_s), tf.float32))
+    accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(emb_softmax, 1), y_b), tf.float32))
 
     emb_test = voicenet(x, is_training=False, reuse=True)
     emb_softmax_test = tf.nn.softmax(emb, axis=1)
-    accuracy_test = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(emb_softmax_test, 1), y_s), tf.float32))
+    accuracy_test = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(emb_softmax_test, 1), y_b), tf.float32))
+
 
 
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     with tf.control_dependencies(update_ops):
-        trainer = tf.train.AdamOptimizer(lr).minimize(loss)
+        # trainer = tf.train.AdamOptimizer(lr).minimize(loss)
+        opt = tf.train.MomentumOptimizer(learning_rate=0.001, momentum=0.9, use_nesterov=True)
+        global_step = tf.Variable(0, trainable=False)
+        gradients = opt.compute_gradients(loss)
+        capped_gradients = [(tf.clip_by_value(grad, -5., 5.), var) for grad, var in gradients if grad is not None]
+        trainer = opt.apply_gradients(capped_gradients, global_step=global_step)
 
     saver = tf.train.Saver(max_to_keep=3, var_list=tf.global_variables())
 
+    coord = tf.train.Coordinator()
     config = tf.ConfigProto()
     config.allow_soft_placement = True
     config.gpu_options.allow_growth = True
 
     with tf.Session(config=config) as sess:
         sess.run(tf.global_variables_initializer())
+        sess.run(tf.local_variables_initializer())
         # saver.restore(sess, '/data/ChuyuanXiong/backup/triplet_backup2/Speaker_vox_iter_51500.ckpt')
 
+
+        def enqueue_batches():
+            while not coord.should_stop():
+                global idx_train
+                global idx_train_label
+                batch_train, idx_train, end_epoch = get_batch(train_audio, idx_train, batch_size=batch_size)
+                batch_train_label, idx_train_label, end_epoch = get_label_batch(train_label, idx_train_label, batch_size=batch_size)
+                batch_train = np.array(batch_train)
+                sess.run(enqueue_op, feed_dict={x: batch_train, y_s: batch_train_label})
+                if end_epoch:
+                    idx_train = 0
+                    idx_train_label = 0
+
+
+        num_threads = 3
+        for j in range(num_threads):
+            t = threading.Thread(target=enqueue_batches)
+            t.setDaemon(True)
+            t.start()
+
         counter = 0
-        for i in range(epoch_time):
+        step = sess.run(global_step)
+
+        # for i in range(epoch_time):
+        while(step <= epoch_time):
             idx_train = 0
             idx_train_label = 0
 
-            while True:
-                batch_train, idx_train, end_epoch = get_batch(train_audio, idx_train, batch_size=batch_size)
-                batch_train_label, idx_train_label, end_epoch = get_label_batch(train_label, idx_train_label, batch_size=batch_size)
+            _, step, loss_val, acc_val, emb_softmax_val = sess.run([trainer, global_step, loss, accuracy, emb], feed_dict={})
 
-                batch_train = np.array(batch_train)
+            counter += 1
 
-                _, loss_val, acc_val, emb_softmax_val = sess.run([trainer, loss, accuracy, emb], feed_dict={x: batch_train, y_s: batch_train_label})
-                
-                counter += 1
+            if counter % 100 == 0:
+                print('counter: ', counter, 'loss_val', loss_val, 'acc: ', acc_val)
+                filename = 'Speaker_vox_iter_{:d}'.format(counter) + '.ckpt'
+                filename = os.path.join(ckpt_save_dir, filename)
+                saver.save(sess, filename)
 
-                if counter % 100 == 0:
-                    print('counter: ', counter, 'loss_val', loss_val, 'acc: ', acc_val)
-                    filename = 'Speaker_vox_iter_{:d}'.format(counter) + '.ckpt'
-                    filename = os.path.join(ckpt_save_dir, filename)
-                    saver.save(sess, filename)
+                # acc_val = sess.run(accuracy_test, feed_dict={x: load_wave_list(test_audio), y_s: test_label})
+                # print('test acc:', acc_val)
 
-                    acc_val = sess.run(accuracy_test, feed_dict={x: load_wave_list(test_audio), y_s: test_label})
-                    print('test acc:', acc_val)
 
-                    # print(emb_softmax_val)
+        print('dbg')
+        coord.request_stop()
+        coord.join()
 
-                if end_epoch:
-                    print('end epoch: ', i)
-                    break
+
+
 
 
 def test(opt):
@@ -314,9 +350,15 @@ def test(opt):
 
     x = tf.placeholder(tf.float32, [None, 512, 300, 1], name='audio_input')
     y_s = tf.placeholder(tf.int64, [None])
-    y = tf.one_hot(y_s, n_classes, axis=-1)
+    
 
-    emb_ori = voicenet(x, is_training=False)
+    with tf.device('/cpu:0'):
+        q = tf.FIFOQueue(batch_size*3, [tf.float32, tf.int64], shapes=[[512, 300, 1], []])
+        enqueue_op = q.enqueue_many([x, y_s])
+        x_b, y_b = q.dequeue_many(batch_size)
+
+    y = tf.one_hot(y_b, n_classes, axis=-1)
+    emb_ori = voicenet(x_b, is_training=False)
     emb = tf.layers.dense(emb_ori, n_classes)
     # emb = tf.contrib.layers.fully_connected(emb_ori, n_classes, activation_fn=None)
 
@@ -353,6 +395,7 @@ def test(opt):
     config.allow_soft_placement = True
     config.gpu_options.allow_growth = True
 
+    coord = tf.train.Coordinator()
 
     true_item = 0
     all_item = 0
@@ -369,6 +412,9 @@ def test(opt):
 
             true_item = 0
             all_item  = 0
+
+
+
             while True:
                 batch_test, idx_train, end_epoch = get_batch(test_audio, idx_train)
                 batch_test_label, idx_train_label, end_epoch = get_label_batch(test_label, idx_train_label)
