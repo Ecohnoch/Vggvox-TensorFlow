@@ -571,8 +571,8 @@ def train(opt):
 
         # for i in range(epoch_time):
         while(counter <= epoch_time):
-            idx_train = 0
-            idx_train_label = 0
+            # idx_train = 0
+            # idx_train_label = 0
 
             _, loss_val, acc_val, emb_softmax_val = sess.run([trainer, loss, accuracy, emb], feed_dict={})
 
