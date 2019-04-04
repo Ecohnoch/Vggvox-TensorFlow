@@ -506,7 +506,7 @@ def train(opt):
         x_b, y_b = q.dequeue_many(batch_size)
 
     y = tf.one_hot(y_b, n_classes, axis=-1)
-    emb_ori = voicenet(x_b, is_training=False)
+    emb_ori = voicenet(x_b, is_training=True)
     emb = tf.layers.dense(emb_ori, n_classes)
 
     # emb = tf.contrib.layers.fully_connected(emb_ori, n_classes, activation_fn=None)
