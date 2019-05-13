@@ -61,10 +61,14 @@ def audio_data_extract(fileName):
 			audio_test.append([path, label1, label2])
 
 	return audio_train, audio_test, audio_veri
- 
- def audio_data_extracted_5994(fileName, rootdir):
- 	train_list = np.loadtxt(fileName, str)
- 	train_file_list = np.array([os.path.join(rootdir, i[0]) for i in train_list])
- 	train_label_list= np.array([int(i[1]) for i in train_list])
- 	return train_file_list, train_label_list
+	
+def audio_data_extracted_5994(fileName, rootdir):
+    '''
+    filename:  voxlb2_train.txt,   voxlb2_val.txt
+    rootdir :  /data/ChuyuanXiong/up/dev
+    '''
+    train_list = np.loadtxt(fileName, str)
+    train_file_list = np.array([os.path.join(rootdir, i[0]) for i in train_list])
+    train_label_list= np.array([int(i[1]) for i in train_list])
+    return train_file_list, train_label_list
 

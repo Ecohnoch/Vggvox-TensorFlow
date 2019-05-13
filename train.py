@@ -147,6 +147,7 @@ def train(opt):
     id2label = {}
 
     n_classes = len(all_people)
+    print(n_classes)
     start = 0
     for people in all_people:
         id2label[people] = start
@@ -192,8 +193,7 @@ def train(opt):
 
 
     x = tf.placeholder(tf.float32, [None, 512, 300, 1], name='audio_input')
-    y_s = tf.placeholder(tf.int64, [None])
-    
+    y_s = tf.placeholder(tf.int64, [None])    
 
     with tf.device('/cpu:0'):
         q = tf.FIFOQueue(batch_size*3, [tf.float32, tf.int64], shapes=[[512, 300, 1], []])
@@ -231,45 +231,31 @@ def train(opt):
 
     saver = tf.train.Saver(max_to_keep=3, var_list=tf.global_variables())
 
+
     coord = tf.train.Coordinator()
     config = tf.ConfigProto()
     config.allow_soft_placement = True
     config.gpu_options.allow_growth = True
 
     with tf.Session(config=config) as sess:
+        summary = tf.summary.FileWriter('./summary', sess.graph)
+        summaries = []
+        summaries.append(tf.summary.scalar('loss', loss))
+        summaries.append(tf.summary.scalar('train_acc', accuracy))
+        summaries.append(tf.summary.scalar('test_acc', accuracy_test))
+        summary_op = tf.summary.merge(summaries)
+
         sess.run(tf.global_variables_initializer())
         sess.run(tf.local_variables_initializer())
-        # saver.restore(sess, '/data/ChuyuanXiong/backup/triplet_backup2/Speaker_vox_iter_51500.ckpt')
-
-
-        def enqueue_batches():
-            while not coord.should_stop():
-                global idx_train
-                global idx_train_label
-                batch_train, idx_train, end_epoch = get_batch(train_audio, idx_train, batch_size=batch_size)
-                batch_train_label, idx_train_label, end_epoch = get_label_batch(train_label, idx_train_label, batch_size=batch_size)
-                batch_train = np.array(batch_train)
-                sess.run(enqueue_op, feed_dict={x: batch_train, y_s: batch_train_label})
-                if end_epoch:
-                    idx_train = 0
-                    idx_train_label = 0
-
-
-        num_threads = 3
-        for j in range(num_threads):
-            t = threading.Thread(target=enqueue_batches)
-            t.setDaemon(True)
-            t.start()
 
         counter = 0
-        # step = sess.run(global_step)
 
-        # for i in range(epoch_time):
         while(counter <= epoch_time):
-            # idx_train = 0
-            # idx_train_label = 0
-
-            _, loss_val, acc_val, emb_softmax_val = sess.run([trainer, loss, accuracy, emb], feed_dict={})
+            batch_train, idx_train, end_epoch = get_batch(train_audio, idx_train, batch_size=batch_size)
+            batch_train_label, idx_train_label, end_epoch = get_label_batch(train_label, idx_train_label, batch_size=batch_size)
+            batch_train = np.array(batch_train)
+            _, loss_val, acc_val, emb_softmax_val, summary_op_val = sess.run([trainer, loss, accuracy, emb, summary_op], feed_dict={x: batch_train, y_s: batch_train_label})
+            
 
             counter += 1
 
@@ -278,15 +264,14 @@ def train(opt):
                 filename = 'Speaker_vox_iter_{:d}'.format(counter) + '.ckpt'
                 filename = os.path.join(ckpt_save_dir, filename)
                 saver.save(sess, filename)
-
+            if counter % 1000 == 0:
+                summary.add_summary(summary_op_val, counter)
                 # acc_val = sess.run(accuracy_test, feed_dict={x: load_wave_list(test_audio), y_s: test_label})
                 # print('test acc:', acc_val)
-
-
-        print('dbg')
-        coord.request_stop()
-        coord.join()
-
+            if end_epoch:
+                idx_train = 0
+                idx_train_label = 0
+                print('end epoch!')
 
 
 
