@@ -249,6 +249,8 @@ def train(opt):
         sess.run(tf.local_variables_initializer())
 
         counter = 0
+        global idx_train
+        global idx_train_label
 
         while(counter <= epoch_time):
             batch_train, idx_train, end_epoch = get_batch(train_audio, idx_train, batch_size=batch_size)
