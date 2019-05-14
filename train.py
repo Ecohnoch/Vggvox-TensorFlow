@@ -195,13 +195,13 @@ def train(opt):
     x = tf.placeholder(tf.float32, [None, 512, 300, 1], name='audio_input')
     y_s = tf.placeholder(tf.int64, [None])    
 
-    with tf.device('/cpu:0'):
-        q = tf.FIFOQueue(batch_size*3, [tf.float32, tf.int64], shapes=[[512, 300, 1], []])
-        enqueue_op = q.enqueue_many([x, y_s])
-        x_b, y_b = q.dequeue_many(batch_size)
+    # with tf.device('/cpu:0'):
+    #     q = tf.FIFOQueue(batch_size*3, [tf.float32, tf.int64], shapes=[[512, 300, 1], []])
+    #     enqueue_op = q.enqueue_many([x, y_s])
+    #     x_b, y_b = q.dequeue_many(batch_size)
 
-    y = tf.one_hot(y_b, n_classes, axis=-1)
-    emb_ori = voicenet(x_b, is_training=True)
+    y = tf.one_hot(y_s, n_classes, axis=-1)
+    emb_ori = voicenet(x, is_training=True)
     emb = tf.layers.dense(emb_ori, n_classes)
 
     # emb = tf.contrib.layers.fully_connected(emb_ori, n_classes, activation_fn=None)
@@ -211,11 +211,11 @@ def train(opt):
     loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=emb, labels=y))
 
 
-    accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(emb_softmax, 1), y_b), tf.float32))
+    accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(emb_softmax, 1), y_s), tf.float32))
 
     emb_test = voicenet(x, is_training=False, reuse=True)
     emb_softmax_test = tf.nn.softmax(emb, axis=1)
-    accuracy_test = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(emb_softmax_test, 1), y_b), tf.float32))
+    accuracy_test = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(emb_softmax_test, 1), y_s), tf.float32))
 
 
 
@@ -238,15 +238,15 @@ def train(opt):
     config.gpu_options.allow_growth = True
 
     with tf.Session(config=config) as sess:
-        summary = tf.summary.FileWriter('./summary', sess.graph)
-        summaries = []
-        summaries.append(tf.summary.scalar('loss', loss))
-        summaries.append(tf.summary.scalar('train_acc', accuracy))
-        summaries.append(tf.summary.scalar('test_acc', accuracy_test))
-        summary_op = tf.summary.merge(summaries)
+        tf.summary.scalar('loss', loss)
+        tf.summary.scalar('train_acc', accuracy)
+        tf.summary.scalar('test_acc', accuracy_test)
 
         sess.run(tf.global_variables_initializer())
         sess.run(tf.local_variables_initializer())
+        
+        merge_summary = tf.summary.merge_all()
+        summary = tf.summary.FileWriter('./summary', sess.graph)
 
         counter = 0
         global idx_train
@@ -256,7 +256,7 @@ def train(opt):
             batch_train, idx_train, end_epoch = get_batch(train_audio, idx_train, batch_size=batch_size)
             batch_train_label, idx_train_label, end_epoch = get_label_batch(train_label, idx_train_label, batch_size=batch_size)
             batch_train = np.array(batch_train)
-            _, loss_val, acc_val, emb_softmax_val, summary_op_val = sess.run([trainer, loss, accuracy, emb, summary_op], feed_dict={x: batch_train, y_s: batch_train_label})
+            _, loss_val, acc_val, emb_softmax_val, summary_op_val = sess.run([trainer, loss, accuracy, emb, merge_summary], feed_dict={x: batch_train, y_s: batch_train_label})
             
 
             counter += 1
