@@ -88,9 +88,14 @@ Train| 1251  |  145265
 Test | 1251  |  8251
 Total| 1251  |  153516 
 
+Dataset | My Result
+-------|-----------
+voxceleb1 | acc=0.7, eer=0.08
+
+
 ### Models
 
-[Model](https://github.com/Ecohnoch/Vggvox-TensorFlow/blob/master/pretrained/vggvox_51500.zip?raw=true) trained by me, and this could be used in this repo. The accuracy is about 66%, this can be further optimized. Verification eer=9%.
+[Model, password: 8gy0](https://pan.baidu.com/s/1fxd-LGzFBUlB9fhBrZHnLQ) trained by me, and this could be used in this repo. The accuracy is about 70%, this can be further optimized. Verification eer=8%.
 
 [Model](https://github.com/a-nagrani/VGGVox) trained by the author, this is for Matlab.
 

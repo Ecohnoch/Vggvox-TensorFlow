@@ -214,6 +214,7 @@ def train(opt):
     accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(emb_softmax, 1), y_s), tf.float32))
 
     emb_test = voicenet(x, is_training=False, reuse=True)
+    loss_test = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=emb_test, labels=y))
     emb_softmax_test = tf.nn.softmax(emb, axis=1)
     accuracy_test = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(emb_softmax_test, 1), y_s), tf.float32))
 
@@ -222,12 +223,6 @@ def train(opt):
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     with tf.control_dependencies(update_ops):
         trainer = tf.train.AdamOptimizer(lr).minimize(loss)
-        # opt = tf.train.MomentumOptimizer(learning_rate=0.001, momentum=0.9, use_nesterov=True)
-        # trainer = opt.minimize(loss)
-        # global_step = tf.Variable(0, trainable=False)
-        # gradients = opt.compute_gradients(loss)
-        # capped_gradients = [(tf.clip_by_value(grad, -5., 5.), var) for grad, var in gradients if grad is not None]
-        # trainer = opt.apply_gradients(capped_gradients, global_step=global_step)
 
     saver = tf.train.Saver(max_to_keep=3, var_list=tf.global_variables())
 
@@ -240,10 +235,12 @@ def train(opt):
     with tf.Session(config=config) as sess:
         tf.summary.scalar('loss', loss)
         tf.summary.scalar('train_acc', accuracy)
-        tf.summary.scalar('test_acc', accuracy_test)
+        # tf.summary.scalar('test_loss', loss_test)
+
 
         sess.run(tf.global_variables_initializer())
         sess.run(tf.local_variables_initializer())
+        # saver.restore(sess, '/data/ChuyuanXiong/params/speaker_vggvox/Speaker_vox_iter_73500.ckpt')
         
         merge_summary = tf.summary.merge_all()
         summary = tf.summary.FileWriter('./summary', sess.graph)
@@ -262,6 +259,7 @@ def train(opt):
             counter += 1
 
             if counter % 100 == 0:
+                # loss_test_val = sess.run(loss_test, feed_dict={x: test_audio, y_s: test_label})
                 print('counter: ', counter, 'loss_val', loss_val, 'acc: ', acc_val)
                 filename = 'Speaker_vox_iter_{:d}'.format(counter) + '.ckpt'
                 filename = os.path.join(ckpt_save_dir, filename)
@@ -276,6 +274,110 @@ def train(opt):
                 print('end epoch!')
 
 
+def calculate_eer(y, y_score):
+    # y denotes groundtruth scores,
+    # y_score denotes the prediction scores.
+    from scipy.optimize import brentq
+    from sklearn.metrics import roc_curve
+    from scipy.interpolate import interp1d
+
+    fpr, tpr, thresholds = roc_curve(y, y_score, pos_label=1)
+    eer = brentq(lambda x : 1. - x - interp1d(fpr, tpr)(x), 0., 1.)
+    thresh = interp1d(fpr, thresholds)(eer)
+    return eer, thresh
+
+def veri(ckpt_file='/data/ChuyuanXiong/backup/speaker_real413_ckpt/Speaker_vox_iter_27700.ckpt', reuse=True):
+    '''
+    Cite: https://github.com/WeidiXie/VGG-Speaker-Recognition
+    '''
+    wav_dir = '/data/ChuyuanXiong/up/voxceleb1/wav/'
+    verify_list = np.loadtxt('utils/voxceleb1_veri_test.txt', str)
+    verify_lb = np.array([int(i[0]) for i in verify_list])
+    list1 = np.array([os.path.join(wav_dir, i[1]) for i in verify_list])
+    list2 = np.array([os.path.join(wav_dir, i[2]) for i in verify_list])
+    total_list = np.concatenate((list1, list2))
+    unique_list= np.unique(total_list)
+    n_classes = 1251
+
+    x = tf.placeholder(tf.float32, [None, 512, 300, 1], name='audio_input')
+    y_s = tf.placeholder(tf.int64, [None])
+
+    y = tf.one_hot(y_s, n_classes, axis=-1)
+    emb_ori = voicenet(x, is_training=False)
+    emb = tf.layers.dense(emb_ori, n_classes)
+    # emb = tf.contrib.layers.fully_connected(emb_ori, n_classes, activation_fn=None)
+
+    # emb = tf.nn.l2_normalize(emb, dim=1)
+    # emb = tf.contrib.layers.fully_connected(emb_ori, n_classes)
+    emb_softmax = tf.nn.softmax(emb, axis=1)
+
+    # x_test = tf.placeholder(tf.float32, [None, 512, None, 1], name='audio_test')
+    # y_test = tf.placeholder(tf.int64, [None])
+
+
+    loss = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(logits=emb, labels=y))
+
+
+    accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(emb_softmax, 1), y_s), tf.float32))
+
+    test_322 = tf.placeholder(tf.float32, [None, n_classes])
+    test_322_softmax = tf.nn.softmax(test_322, axis=1)
+    accuracy_322 = tf.reduce_sum(tf.cast(tf.equal(tf.argmax(test_322_softmax, 1), y_s), tf.float32))
+
+    emb_test = tf.placeholder(tf.float32, [None, n_classes])
+
+    acc_num = tf.reduce_sum(tf.cast(tf.equal(tf.argmax(emb_test, 1), y_s), tf.float32))
+
+
+    opt = tf.train.AdamOptimizer(0.001)
+    trainer = opt.minimize(loss)
+
+    
+    saver = tf.train.Saver(max_to_keep=3)
+
+    var_list = tf.trainable_variables()
+    g_list = tf.global_variables()
+    bn_moving_vars = [g for g in g_list if 'moving_mean' in g.name]
+    bn_moving_vars += [g for g in g_list if 'moving_variance' in g.name]
+    var_list += bn_moving_vars
+    saver = tf.train.Saver(max_to_keep=3, var_list=var_list)
+
+    config = tf.ConfigProto()
+    config.allow_soft_placement = True
+    config.gpu_options.allow_growth = True
+    with tf.Session(config=config) as sess:
+        sess.run(tf.global_variables_initializer())
+        saver.restore(sess, ckpt_file)
+
+        total_length = len(unique_list)
+        feats, scores, labels = [], [], []
+        for c, ID in enumerate(unique_list):
+            if c % 50 == 0: 
+                print('Finish extracting features for {}/{}th wav.'.format(c, total_length))
+            specs = load_wave(ID)
+            # times = int(specs.shape[1] / 250)
+            # chunk_emb = []
+            # for i in range(times):
+            #     chunk_emb.append (specs[:,i*250:i*250+250,:])
+            #     # print(specs[:,i*250:i*250+250,:].shape)
+            emb_val = sess.run(emb_ori, feed_dict={x:[specs]})
+            avg_emb = np.mean(emb_val, 0)
+            # print(avg_emb.shape)
+            feats.append([avg_emb])
+        feats = np.array(feats)
+        for c, (p1, p2) in enumerate(zip(list1, list2)):
+            ind1 = np.where(unique_list == p1)[0][0]
+            ind2 = np.where(unique_list == p2)[0][0]
+            v1 = feats[ind1, 0]
+            v2 = feats[ind2, 0]
+
+            scores += [np.sum(v1*v2)]
+            labels += [verify_lb[c]]
+        scores = np.array(scores)
+        labels = np.array(labels)
+
+        eer, thresh = calculate_eer(labels, scores)
+        print(eer)
 
 
 def test(opt):
@@ -358,12 +460,6 @@ def test(opt):
 
     x = tf.placeholder(tf.float32, [None, 512, 300, 1], name='audio_input')
     y_s = tf.placeholder(tf.int64, [None])
-    
-
-    # with tf.device('/cpu:0'):
-    #     q = tf.FIFOQueue(batch_size*3, [tf.float32, tf.int64], shapes=[[512, 300, 1], []])
-    #     enqueue_op = q.enqueue_many([x, y_s])
-    #     x_b, y_b = q.dequeue_many(batch_size)
 
     y = tf.one_hot(y_s, n_classes, axis=-1)
     emb_ori = voicenet(x, is_training=False)
@@ -395,13 +491,13 @@ def test(opt):
     opt = tf.train.AdamOptimizer(0.001)
     trainer = opt.minimize(loss)
 
-    var_list = tf.trainable_variables()
-    g_list = tf.global_variables()
-    bn_moving_vars = [g for g in g_list if 'moving_mean' in g.name]
-    bn_moving_vars += [g for g in g_list if 'moving_variance' in g.name]
-    var_list += bn_moving_vars
+    # var_list = tf.trainable_variables()
+    # g_list = tf.global_variables()
+    # bn_moving_vars = [g for g in g_list if 'moving_mean' in g.name]
+    # bn_moving_vars += [g for g in g_list if 'moving_variance' in g.name]
+    # var_list += bn_moving_vars
     
-    saver = tf.train.Saver(max_to_keep=3, var_list=var_list)
+    saver = tf.train.Saver(max_to_keep=3)
 
     config = tf.ConfigProto()
     config.allow_soft_placement = True
@@ -472,6 +568,7 @@ def test(opt):
 
 
 if __name__ == '__main__':
+    # veri('/data/ChuyuanXiong/params/speaker_vggvox/backup/Speaker_vox_iter_78100.ckpt')
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers()
 
