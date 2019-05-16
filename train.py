@@ -286,7 +286,7 @@ def calculate_eer(y, y_score):
     thresh = interp1d(fpr, thresholds)(eer)
     return eer, thresh
 
-def veri(ckpt_file='/data/ChuyuanXiong/backup/speaker_real413_ckpt/Speaker_vox_iter_27700.ckpt', reuse=True):
+def veri(opt, reuse=True):
     '''
     Cite: https://github.com/WeidiXie/VGG-Speaker-Recognition
     '''
@@ -298,6 +298,7 @@ def veri(ckpt_file='/data/ChuyuanXiong/backup/speaker_real413_ckpt/Speaker_vox_i
     total_list = np.concatenate((list1, list2))
     unique_list= np.unique(total_list)
     n_classes = 1251
+    ckpt_file = opt.ckpt_restore_file
 
     x = tf.placeholder(tf.float32, [None, 512, 300, 1], name='audio_input')
     y_s = tf.placeholder(tf.int64, [None])
@@ -591,5 +592,11 @@ if __name__ == '__main__':
     parser_test.add_argument('--ckpt_restore_file', default='/data/ChuyuanXiong/backup/triplet_backup2/Speaker_vox_iter_51500.ckpt', required=True)
     parser_test.add_argument('--random_seed', default=100, type=int, required=False)
     parser_test.set_defaults(func=test)
+
+    # Veri
+    parser_veri = subparsers.add_parser('veri')
+    parser_veri.add_argument('--ckpt_restore_file', default='/data/ChuyuanXiong/params/speaker_vggvox/Speaker_vox_iter_79700.ckpt', required=True)
+    parser_veri.set_defaults(func=veri)
+
     opt = parser.parse_args()
     opt.func(opt)
