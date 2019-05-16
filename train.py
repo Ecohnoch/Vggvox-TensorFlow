@@ -379,6 +379,7 @@ def veri(opt, reuse=True):
 
         eer, thresh = calculate_eer(labels, scores)
         print(eer)
+        return eer
 
 
 def test(opt):
