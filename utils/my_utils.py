@@ -11,7 +11,24 @@ import utils.read as read
 from scipy.io import wavfile
 # from python_speech_features import fbank, delta
 
+def set_mp(processes=8):
+    import multiprocessing as mp
 
+    def init_worker():
+        import signal
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
+
+    global pool
+    try:
+        pool.terminate()
+    except:
+        pass
+
+    if processes:
+        pool = mp.Pool(processes=processes, initializer=init_worker)
+    else:
+        pool = None
+    return pool
 
 def read_data_from_csv(filePath):
 	with open(filePath) as f:
@@ -65,7 +82,7 @@ def audio_data_extract(fileName):
 def audio_data_extracted_5994(fileName, rootdir):
     '''
     filename:  voxlb2_train.txt,   voxlb2_val.txt
-    rootdir :  /data/ChuyuanXiong/up/dev
+    rootdir :  /data/ChuyuanXiong/backup/dev
     '''
     train_list = np.loadtxt(fileName, str)
     train_file_list = np.array([os.path.join(rootdir, i[0]) for i in train_list])
