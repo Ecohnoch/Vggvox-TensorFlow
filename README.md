@@ -11,7 +11,7 @@ INTERSPEECH, 2017
 
 ### Demo
 
-[http://chuyuan.vipgz1.idcfengye.com/](http://chuyuan.vipgz1.idcfengye.com/)
+> has been expired.....[http://chuyuan.vipgz1.idcfengye.com/](http://chuyuan.vipgz1.idcfengye.com/)
 
 ### Dependencies
 
@@ -73,13 +73,13 @@ The args:
 Training:
 
 ```
-$ python3 train.py train --voxceleb_wav_dir '/data/ChuyuanXiong/up/wav/' --vox_split_txt_file 'utils/vox1_split_backup.txt' --batch_size 32 --lr 0.001 --ckpt_save_dir '/data/ChuyuanXiong/backup/speaker_real318_ckpt' 
+$ python3 train.py train --voxceleb_wav_dir '/data/x/up/wav/' --vox_split_txt_file 'utils/vox1_split_backup.txt' --batch_size 32 --lr 0.001 --ckpt_save_dir '/data/x/backup/speaker_real318_ckpt' 
 ```
 
 Testing:
 
 ```
-$ python3 train.py test --voxceleb_wav_dir '/data/ChuyuanXiong/up/wav/' --vox_split_txt_file 'utils/vox1_split_backup.txt' --batch_size 32 --ckpt_restore_file '/data/ChuyuanXiong/backup/triplet_backup2/Speaker_vox_iter_51500.ckpt' --random_seed 100
+$ python3 train.py test --voxceleb_wav_dir '/data/x/up/wav/' --vox_split_txt_file 'utils/vox1_split_backup.txt' --batch_size 32 --ckpt_restore_file '/data/x/backup/triplet_backup2/Speaker_vox_iter_51500.ckpt' --random_seed 100
 ```
 
 ### Dataset
